@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Text Fingerprinting</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+
+    
+    <style type="text/css">
+    
+    </style>
+</head>
+<body>  
+    <h1>Literature Fingerprints</h1>
+    <p>Use this page to upload a collection of different text documents and visualize their "fingerprints". To generate the fingerprint, the text files are broken up into shorter lists of words. For each subset, we draw a small box and set the color of the box based on the average word length for all of the words in that subset.
+    </p>
+    <input type="file" id="files" name="files[]" multiple />
+
+    <select id="fingerprint_type">
+        <option value="avg_length">Average word length</option>
+        <option value="unique">Hapax Legomena</option>
+    </select>
+
+
+    <div id="text-vis"></div>
+
+    <script>
+
+        // constant to determine how the file gets segmented
+        // to make your lives a little easier, we wil keep a fixed block size
+        // if you want a challenge, add a control and let the user change this on the fly...
+        const WORDS_PER_BLOCK = 200;
+
+        // the master collection of records to be visualized
+        const master_file_list = [];
+
+        /*
+            Redraw the visualization using the current state of the master_list. 
+
+            We could be here because
+            - we added some new files
+            - we removed a file
+            - we changed the fingerprint type
+        */
+        const update_visualization = function(){
+            // what kind of fingerprinting are we doing?
+            const fingerprint_type = document.getElementById('fingerprint_type').value;
+
+            
+
+        };
+
+        /*
+            The bundleTextData function takes in a name and the contents of the associated file. The function should process the text and return an object containing (at minimum), the name of a file, and a list of segment values for each metric.
+        */
+       
+        const process_text_data = function(file_name, contents){
+
+
+        };
+
+
+
+        /*
+            This function does the voodoo of "uploading" the files into the browser. You don't need to know exactly what is going on in here. The important parts are that when the user selects multiple files, this will read those files in, passing each one to process_text_data() for you to process. When they have all been processed, it will then call drawTextVis() with a list of all of the objects you produced in the process_text_data() function.
+        */
+        const handle_file_select = function(evt) {
+        const files = evt.target.files; // FileList object
+
+        const load_list = [];
+
+        for (let i = 0, f; f = files[i]; i++) {
+            const p = new Promise(function(resolve, reject){
+            const reader = new FileReader();
+
+            reader.onload = function(file_data){ 
+                return (event) => resolve(process_text_data(file_data.name, event.target.result));
+                }(f);
+            reader.readAsText(f);
+
+            });
+            load_list.push(p);
+        }
+
+        Promise.all(load_list).then(function(processed_records){
+            for (let i =0; i < processed_records.length; i++){
+                master_file_list.push(processed_records[i]);
+            }
+
+            update_visualization();
+        });
+
+        };
+
+    // add the event listener for the file addition button
+    document.getElementById('files').addEventListener('change', handle_file_select, false);
+
+    // add the event listener for changing the fingerprint type
+    document.getElementById('fingerprint_type').addEventListener('change', function(event){
+        update_visualization();
+
+    });
+        
+    </script>
+</body>
+</html>
