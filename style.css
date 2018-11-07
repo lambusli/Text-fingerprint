@@ -1,0 +1,9 @@
+
+.avgL,.hapax {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 0;
+    padding: 0;
+    border: black 1px solid;
+}
