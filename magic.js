@@ -6,7 +6,9 @@ const WORDS_PER_BLOCK = 200;
 const visArea = d3.select('#text-vis');
 const color_scale = d3.scaleLinear();
 const color_scale2 = d3.scaleLinear();
-const legend = visArea.append("g");
+const legSvg = visArea.append("svg");
+const legRect = legSvg.append("g");
+const legText = legSvg.append("g");
 
 // the master collection of records to be visualized
 const master_file_list = [];
@@ -25,6 +27,53 @@ const master_file_list = [];
 "uniquenessCount": countUnique(tempArray, uniqueList)
 */
 const update_visualization = function(){
+    var minML = 2147483647, maxML = -1, minUC = 2147483647, maxUC = -1;
+
+    /*
+    ** Some prep functions
+    */
+    for (let i = 0; i < master_file_list.length; i++) {
+        maxML = Math.max(maxML, d3.max(master_file_list[i]["meanLength"], (d) => d));
+        minML = Math.min(minML, d3.min(master_file_list[i]["meanLength"], (d) => d));
+        maxUC = Math.max(maxUC, d3.max(master_file_list[i]["uniqueCount"], (d) => d));
+        minUC = Math.min(minUC, d3.min(master_file_list[i]["uniqueCount"], (d) => d));
+    }
+
+    const createLegend = function(min, max){
+        var colorArray = new Array(5);
+        for (i = 0; i <= 5; i++){
+            colorArray[i] = min + (max - min) * i / 5;
+        }
+
+        rects = legRect.selectAll("rect").data(colorArray, (d) => d);
+        texts = legText.selectAll("text").data(colorArray, (d) => d);
+
+        rects.exit().remove();
+        texts.exit().remove();
+
+        rects.enter()
+            .append("rect")
+            .attr("x", 0)
+            .attr("y", (d, i)=> i * 20)
+            .attr("height", 15)
+            .attr("width", 15)
+            .attr("fill", (d) => color_scale(d));
+
+        texts.enter()
+          .append("text")
+          .text((d) => d)
+          .attr("x", 30)
+          .attr("y", (d, i)=> i * 20)
+          .attr("transform", `translate(0, 13)`)
+          .style("font-size", 15);
+
+        legSvg.attr("transform", `translate(500, 0)`);
+    }
+
+    /*
+    ** Here we go
+    */
+
     // what kind of fingerprinting are we doing?
     const fingerprint_type = document.getElementById('fingerprint_type').value;
 
@@ -37,12 +86,9 @@ const update_visualization = function(){
       .classed("vis", true);
 
     const showAverage = function(eachFile, i, dom) {
-        alert("I'm average");
-        let min = d3.min(eachFile["meanLength"], (d) => d);
-        let max = d3.max(eachFile["meanLength"], (d) => d);
 
         color_scale.range(["red", "yellow", "green"])
-          .domain([min, (min + max) / 2, max]);
+          .domain([minML, (minML + maxML) / 2, maxML]);
 
 
         d3.select(dom).html("");
@@ -60,29 +106,11 @@ const update_visualization = function(){
           .attr("fill", (d) => color_scale(d));
 
     }
-    function createLegend(min, max){
-
-    var colorArray = new Array(5);
-    var rgbArray = new Array(5);
-
-      for (i = 0; i <= 5; i++){
-        colorArray[i] = min + (max - min) * i / 5;
-        rgbArray[i] = color_scale(colorArray[i]);
-      }
-      console.log(colorArray)
-      console.log(rgbArray)
-      console.log(min)
-      console.log(max)
-
-    }
 
     const showUnique = function(eachFile, i, dom) {
-        alert("I'm unique");
-        let min = d3.min(eachFile["uniqueCount"], (d) => d);
-        let max = d3.max(eachFile["uniqueCount"], (d) => d);
 
         color_scale.range(["red", "yellow", "green"])
-          .domain([min, (min + max) / 2, max]);
+          .domain([minUC, (minUC + maxUC) / 2, maxUC]);
 
         d3.select(dom).html("");
 
@@ -106,6 +134,9 @@ const update_visualization = function(){
         newDiv.each(function(eachFile, i){
             showAverage(eachFile, i, this);
         });
+
+        createLegend(minML, maxML);
+
     }
     else if (fingerprint_type == "unique") {
         chartDiv.each(function(eachFile, i){
@@ -114,6 +145,8 @@ const update_visualization = function(){
         newDiv.each(function(eachFile, i){
             showUnique(eachFile, i, this);
         });
+
+        createLegend(minUC, maxUC); 
     }
 
 };
@@ -235,7 +268,6 @@ document.getElementById('files').addEventListener('change', handle_file_select, 
 
 // add the event listener for changing the fingerprint type
 document.getElementById('fingerprint_type').addEventListener('change', function(event){
-    alert("I'm naked");
     update_visualization();
 
 });
