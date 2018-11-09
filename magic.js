@@ -27,6 +27,7 @@ const master_file_list = [];
 "uniquenessCount": countUnique(tempArray, uniqueList)
 */
 const update_visualization = function(){
+
     var minML = 2147483647, maxML = -1, minUC = 2147483647, maxUC = -1;
 
     /*
@@ -77,7 +78,8 @@ const update_visualization = function(){
     // what kind of fingerprinting are we doing?
     const fingerprint_type = document.getElementById('fingerprint_type').value;
 
-    const chartDiv = visArea.selectAll(".vis")
+    // appending each file to a div
+    var chartDiv = visArea.selectAll(".vis")
       .data(master_file_list, (d) => d.id);
 
     chartDiv.exit().remove();
@@ -85,13 +87,29 @@ const update_visualization = function(){
     newDiv = chartDiv.enter().append("div")
       .classed("vis", true);
 
+    // function used for the delete button
+    function removeDiv(element, fileIndex){
+      var divList = document.getElementsByClassName('vis');
+      divList[fileIndex].parentNode.removeChild(divList[fileIndex]);
+    }
+
+    // chartDiv = chartDiv.merge(newDiv);
+    // append delete button to each div
+    // newDiv.append("button").text("Delete");
+
+    // show the fingerprint of meanLength for file
     const showAverage = function(eachFile, i, dom) {
 
         color_scale.range(["red", "yellow", "green"])
           .domain([minML, (minML + maxML) / 2, maxML]);
 
-
         d3.select(dom).html("");
+        d3.select(dom).append("button").text("Delete").on("click", function(){
+          console.log(eachFile)
+          var fileIndex = master_file_list.indexOf(eachFile);
+          removeDiv(this, fileIndex);
+          master_file_list.splice(fileIndex, 1); // remove element
+        });
 
         d3.select(dom).append("svg").append("g")
           .selectAll(".avg")    // small blocks
@@ -106,13 +124,19 @@ const update_visualization = function(){
           .attr("fill", (d) => color_scale(d));
 
     }
-
+    // show the fingerprint of uniqueCount for each file
     const showUnique = function(eachFile, i, dom) {
 
         color_scale.range(["red", "yellow", "green"])
           .domain([minUC, (minUC + maxUC) / 2, maxUC]);
 
         d3.select(dom).html("");
+        d3.select(dom).append("button").text("Delete").on("click", function(){
+          console.log(eachFile)
+          var fileIndex = master_file_list.indexOf(eachFile);
+          removeDiv(this, fileIndex);
+          master_file_list.splice(fileIndex, 1); // remove element
+        });
 
         d3.select(dom).append("svg").append("g")
           .selectAll(".hapax")    // small blocks
@@ -146,7 +170,7 @@ const update_visualization = function(){
             showUnique(eachFile, i, this);
         });
 
-        createLegend(minUC, maxUC); 
+        createLegend(minUC, maxUC);
     }
 
 };
@@ -269,5 +293,4 @@ document.getElementById('files').addEventListener('change', handle_file_select, 
 // add the event listener for changing the fingerprint type
 document.getElementById('fingerprint_type').addEventListener('change', function(event){
     update_visualization();
-
 });
