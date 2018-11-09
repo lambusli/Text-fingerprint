@@ -6,10 +6,10 @@ const WORDS_PER_BLOCK = 200;
 const visArea = d3.select('#text-vis');
 const color_scale = d3.scaleLinear();
 const color_scale2 = d3.scaleLinear();
+const legend = visArea.append("g");
 
 // the master collection of records to be visualized
 const master_file_list = [];
-var res = [];
 /*
     Redraw the visualization using the current state of the master_list.
 
@@ -28,62 +28,93 @@ const update_visualization = function(){
     // what kind of fingerprinting are we doing?
     const fingerprint_type = document.getElementById('fingerprint_type').value;
 
-    const gridChart = visArea.selectAll(".vis")
-      .data(master_file_list)
-      .enter()
-      .append("div")
+    const chartDiv = visArea.selectAll(".vis")
+      .data(master_file_list, (d) => d.id);
+
+    chartDiv.exit().remove();
+
+    newDiv = chartDiv.enter().append("div")
       .classed("vis", true);
 
-    visArea.selectAll('.vis').each(function(dataEachFile) {
+    const showAverage = function(eachFile, i, dom) {
+        alert("I'm average");
+        let min = d3.min(eachFile["meanLength"], (d) => d);
+        let max = d3.max(eachFile["meanLength"], (d) => d);
 
-        const showAverageLength = function() {
+        color_scale.range(["red", "yellow", "green"])
+          .domain([min, (min + max) / 2, max]);
 
-            let min = d3.min(dataEachFile, (eachObj) => eachObj["meanLength"]);
-            let max = d3.max(dataEachFile, (eachObj) => eachObj["meanLength"]);
 
-            color_scale.range(["red", "yellow", "green"])
-              .domain([min, (min + max) / 2, max]);
+        d3.select(dom).html("");
 
-            chart = d3.select(this);
-            // used to write gridChart here. 
-            chart.html("");
+        d3.select(dom).append("svg").append("g")
+          .selectAll(".avg")    // small blocks
+          .data((d) => d["meanLength"])
+          .enter()
+          .append("rect")
+          .classed("avg", true)
+          .attr("x", (d, i) => (i % 50) * 10)
+          .attr("y", (d, i) => (Math.floor(i / 50) * 10))
+          .attr("width", 10)
+          .attr("height", 10)
+          .attr("fill", (d) => color_scale(d));
 
-            chart.selectAll(".avgL")
-              .data((dataEachFile) => dataEachFile)
-              .enter()
-              .append("div").classed("avgL", true)
-              .style("background-color", (eachObj) => color_scale(eachObj["meanLength"]));
+    }
+    function createLegend(min, max){
 
-        };
+    var colorArray = new Array(5);
+    var rgbArray = new Array(5);
 
-        const showUnique = function() {
+      for (i = 0; i <= 5; i++){
+        colorArray[i] = min + (max - min) * i / 5;
+        rgbArray[i] = color_scale(colorArray[i]);
+      }
+      console.log(colorArray)
+      console.log(rgbArray)
+      console.log(min)
+      console.log(max)
 
-            let min = d3.min(dataEachFile, (eachObj) => eachObj["uniquenessCount"]);
-            let max = d3.max(dataEachFile, (eachObj) => eachObj["uniquenessCount"]);
+    }
 
-            color_scale.range(["red", "yellow", "green"])
-              .domain([min, (min + max) / 2, max]);
+    const showUnique = function(eachFile, i, dom) {
+        alert("I'm unique");
+        let min = d3.min(eachFile["uniqueCount"], (d) => d);
+        let max = d3.max(eachFile["uniqueCount"], (d) => d);
 
-            chart = d3.select(this);
+        color_scale.range(["red", "yellow", "green"])
+          .domain([min, (min + max) / 2, max]);
 
-            chart.html("");
+        d3.select(dom).html("");
 
-            chart.selectAll(".hapax")
-              .data((dataEachFile) => dataEachFile)
-              .enter()
-              .append("div").classed("hapax", true)
-              .style("background-color", (eachObj) => color_scale(eachObj["uniquenessCount"]));
-        };
+        d3.select(dom).append("svg").append("g")
+          .selectAll(".hapax")    // small blocks
+          .data((d) => d["uniqueCount"])
+          .enter()
+          .append("rect")
+          .classed("hapax", true)
+          .attr("x", (d, i) => (i % 50) * 10)
+          .attr("y", (d, i) => (Math.floor(i / 50) * 10))
+          .attr("width", 10)
+          .attr("height", 10)
+          .attr("fill", (d) => color_scale(d));
+    }
 
-        if (fingerprint_type == "avg_length") {
-                showAverageLength(dataEachFile);
-        }
-        else if (fingerprint_type == "unique") {
-                showUnique(dataEachFile);
-        }
-
-    });
-
+    if (fingerprint_type == "avg_length") {
+        chartDiv.each(function(eachFile, i){
+            showAverage(eachFile, i, this);
+        });
+        newDiv.each(function(eachFile, i){
+            showAverage(eachFile, i, this);
+        });
+    }
+    else if (fingerprint_type == "unique") {
+        chartDiv.each(function(eachFile, i){
+            showUnique(eachFile, i, this);
+        });
+        newDiv.each(function(eachFile, i){
+            showUnique(eachFile, i, this);
+        });
+    }
 
 };
 
@@ -126,8 +157,15 @@ function countUnique(subarray, uniqueL) {
     The bundleTextData function takes in a name and the contents of the associated file. The function should process the text and return an object containing (at minimum), the name of a file, and a list of segment values for each metric.
 */
 
-const process_text_data = function(file_name, contents){
-    res = [];
+const process_text_data = function(file_name, contents, id){
+    var res = {
+      "fileName": "",
+      "meanLength": [],
+      "uniqueCount": [],
+      "id": id
+    };
+
+    var arr1 = [], arr2 = []
 
     var wordArray = contents.split(/\s+/);
     var uniqueList = findUniques(wordArray);
@@ -146,12 +184,13 @@ const process_text_data = function(file_name, contents){
             tempArray = wordArray.slice(i);
         }
 
-        res.push({
-          "fileName": file_name,
-          "meanLength": calcAvgLength(tempArray),
-          "uniquenessCount": countUnique(tempArray, uniqueList)
-        });
+        arr1.push(calcAvgLength(tempArray));
+        arr2.push(countUnique(tempArray, uniqueList));
+
     }
+    res["fileName"] = file_name;
+    res["meanLength"] = arr1;
+    res["uniqueCount"] = arr2;
 
     return res;
 
@@ -172,7 +211,7 @@ const handle_file_select = function(evt) {
         const reader = new FileReader();
 
         reader.onload = function(file_data){
-            return (event) => resolve(process_text_data(file_data.name, event.target.result));
+            return (event) => resolve(process_text_data(file_data.name, event.target.result, i));
             }(f);
         reader.readAsText(f);
 
@@ -196,7 +235,7 @@ document.getElementById('files').addEventListener('change', handle_file_select, 
 
 // add the event listener for changing the fingerprint type
 document.getElementById('fingerprint_type').addEventListener('change', function(event){
-    alert("I'm changed!");
+    alert("I'm naked");
     update_visualization();
 
 });
